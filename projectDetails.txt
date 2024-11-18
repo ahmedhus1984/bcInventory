@@ -1,0 +1,27 @@
+sql:
+
+systems:
+
+model
+serial cpk
+hostname cpk
+type
+ship date
+warranty expiry date
+site
+location
+status
+
+users:
+
+user pk
+department
+
+logs:
+
+date
+serial cfk
+hostname cfk
+user fk
+log: issue, return, error, repair
+details
