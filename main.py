@@ -20,67 +20,97 @@ def mysqlCursor(conn):
         exit(1)
     return myCursor
 
-def mysqlCreate(cursor, table):
-    serial, hostname, type, shipDate, warrExp, site, location, status, department, model, brand=input('enter serial, hostname, type, shipDate, warrExp, site, location, status, department, model, brand seperated by comma:\n').split(',')
-    print(serial+'\n'+hostname+'\n'+type+'\n'+shipDate+'\n'+warrExp+'\n'+site+'\n'+location+'\n'+status+'\n'+department+'\n'+model)
-    cursor.execute(f'insert into {table} (serial, hostname, type, shipDate, warrExp, site, location, status, department, model, brand) values("{serial}", "{hostname}", "{type}", "{shipDate}", "{warrExp}", "{site}", "{location}", "{status}", "{department}", "{model}", "{brand}");')
+def mysqlCreateSystems(cursor, table):
+    brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status seperated by comma:\n').split(',')
+    print(brand+'\n'+model+'\n'+serial+'\n'+hostname+'\n'+type+'\n'+shipdate+'\n'+warrexp+'\n'+site+'\n'+location+'\n'+devdep+'\n'+status)
+    cursor.execute(f'insert into {table} (brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status) values("{brand}", "{model}", "{serial}", "{hostname}", "{type}", "{shipdate}", "{warrexp}", "{site}", "{location}", "{devdep}", "{status}")')
+
+def mysqlCreateHistLog(cursor, table):
+    date, hostname, user, log, remarks=input('enter date, hostname, user, log, remarks seperated by comma:\n').split(',')
+    print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
+    cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
+
+def mysqlCreatePrevOwn(cursor, table):
+    date, hostname, user, log, remarks=input('enter date, hostname, user, log, remarks seperated by comma:\n').split(',')
+    print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
+    cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
+
+def mysqlCreateCurrOwn(cursor, table):
+    date, hostname, user, log, remarks=input('enter date, hostname, user, log, remarks seperated by comma:\n').split(',')
+    print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
+    cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
+
+
 
 def mysqlRead(cursor, table, readParam):
-    blah=readColumns(cursor, table)
-    cursor.execute(f'select * from {table} where serial=\'{readParam}\'')
-    blah2=[]
+    cursor.execute(f'select * from {table} where hostname=\'{readParam}\'')
+    blah=[]
     for i in cursor:
         for j in i:
-            blah2.append(j)
+            blah.append(j)
+    blah2=readColumns(cursor, table)
     print()
     for i in range(0, len(blah), 1):
-        print(f'{blah[i]: <12}: {blah2[i]}')
+        print(f'{blah2[i]: <12}: {blah[i]}')
     print()
+
+def mysqlDelete(cursor, table, delParam):
+    cursor.execute(f'delete from {table} where hostname=\'{delParam}\'')
+
 
 
 def readColumns(cursor, table):
-    cursor.execute(f'select column_name from information_schema.columns where table_schema=\'bcinv\' and table_name=\'{table}\'')
-    blah=cursor.fetchall()
-    blah2=[]
-    for i in blah:
-        blah2.append(i[0])
-    return blah2
+    cursor.execute(f'desc {table}')
+    blah=[]
+    for i in cursor:
+        blah.append(i[0])
+    return blah
 
 def mysqlConnClose(conn):
     conn.close()
 
-def choiceSelect(conn, cursor):
+def choiceSelectTables(conn, cursor):
     while True:
-        table=input('enter option to view a table; s for systems, l for logs, u for users, x to exit: ')
+        table=input('enter option to view a table; s for systems, h for histlogs, p for prevown, c for currown or x to exit: ')
         match table:
             case 's':
                 table='systems'
-                break
-            case 'l':
-                table='logs'
-                break
-            case 'u':
-                table='users'
-                break
+            case 'h':
+                table='histlogs'
+            case 'p':
+                table='prevown'
+            case 'c':
+                table='currown'
             case 'x':
                 return table
             case _:
-                print('wrong choice, only s, l or u allowed. ')
+                print('wrong choice, only s, h, p, c or x allowed. ')
+        choiceSelectCrud(table, conn, cursor)
+
+def choiceSelectCrud(table, conn, cursor):
     while True:
-        operation=input('enter c, r, u, d to create, read, update, delete records, x to exit: ')
+        operation=input('enter c (create), r (read), d (delete), rc(read columns), x (exit): ')
         match operation:
             case 'c':
-                mysqlCreate(cursor, table)
+                match table:
+                    case 'systems':
+                        mysqlCreateSystems(cursor, table)
+                    case 'histlogs':
+                        mysqlCreateHistLog(cursor, table)
+                    case 'prevown':
+                        mysqlCreatePrevOwn(cursor, table)
+                    case 'currown':
+                        mysqlCreateCurrOwn(cursor, table)
                 conn.commit()
-                break
-            case 'e':
+            case 'r': 
+                readParam=input('enter hostname to read: ')
+                mysqlRead(cursor, table, readParam)
+            case 'd': 
+                delParam=input('enter hostname to delete: ')
+                mysqlDelete(cursor, table, delParam)
+            case 'rc':
                 blah=readColumns(cursor, table)
                 print(blah)
-                break
-            case 'r':
-                readParam=input('enter serial number: ')
-                mysqlRead(cursor, table, readParam)
-                break
             case 'x':
                 return operation
             case _:
@@ -90,10 +120,11 @@ def main():
     conn, myCursor=mysqlConn()
     a=''
     while True:
-        a=choiceSelect(conn, myCursor)
+        a=choiceSelectTables(conn, myCursor)
         if a=='x':
             print('bye!')
             mysqlConnClose(conn)
             return 0
+
 
 main()
