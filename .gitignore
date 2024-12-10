@@ -1,5 +1,5 @@
-/.idea
-/.vs
-/.tables_in_csv
+.idea
+.vs
+.tables_in_csv
 .gitattributes
 .gitignore
