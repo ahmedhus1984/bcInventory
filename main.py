@@ -20,6 +20,22 @@ def mysqlCursor(conn):
         exit(1)
     return myCursor
 
+# def newUser(cursor):
+#     email=input('enter email address of user: ').strip().lower()
+#     hostname=input('enter hostname of device to issue to user: ').strip().lower()
+#     cursor.execute(f'select * from systems where hostname=\'{hostname}\'')
+#     if cursor==None:
+#         print('hostname not found...')
+#         return
+#     cursor.execute(f'select * from users where email=\'{email}\'')
+#     if cursor==None:
+#         print('user not found...')
+#         return
+#     cursor.execute(f'insert into currown values(\'date_format(current_timestamp(), \'%Y-%b-%d\')\', \'{hostname}\', \'{email}\', null)')
+#     cursor.execute(f'select * from currown where user={email} and hostname={hostname}')
+
+
+
 def mysqlCreateSystems(cursor, table):
     brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status seperated by comma:\n').split(',')
     print(brand+'\n'+model+'\n'+serial+'\n'+hostname+'\n'+type+'\n'+shipdate+'\n'+warrexp+'\n'+site+'\n'+location+'\n'+devdep+'\n'+status)
@@ -40,8 +56,6 @@ def mysqlCreateCurrOwn(cursor, table):
     print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
     cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
 
-
-
 def mysqlRead(cursor, table, readParam):
     cursor.execute(f'select * from {table} where hostname=\'{readParam}\'')
     blah=[]
@@ -57,8 +71,6 @@ def mysqlRead(cursor, table, readParam):
 def mysqlDelete(cursor, table, delParam):
     cursor.execute(f'delete from {table} where hostname=\'{delParam}\'')
 
-
-
 def readColumns(cursor, table):
     cursor.execute(f'desc {table}')
     blah=[]
@@ -71,7 +83,7 @@ def mysqlConnClose(conn):
 
 def choiceSelectTables(conn, cursor):
     while True:
-        table=input('enter option to view a table; s for systems, h for histlogs, p for prevown, c for currown or x to exit: ')
+        table=input('enter option to view a table:\ns for systems\nh for histlogs\np for prevown\nc for currown\nn for new user\nr for resignation\nu for upgrade/swap  or x to exit: ')
         match table:
             case 's':
                 table='systems'
@@ -81,6 +93,12 @@ def choiceSelectTables(conn, cursor):
                 table='prevown'
             case 'c':
                 table='currown'
+            case 'n':
+                newUser(cursor)
+            # case 'r':
+            #     xxx
+            # case 'u':
+            #     xxx
             case 'x':
                 return table
             case _:
