@@ -1,88 +1,71 @@
-systems:
-Dell,Latitude 7280,BXDJ0N2,SGSIN1BL0144,Laptop,13-Mar-2018,15-Mar-2021,napier,null,general resources,pending deployment
-Dell,Latitude 7280,75ZB0N2,SGSIN1BL5001,Laptop,5-Mar-2018,5-Mar-2021,napier,Server Room,teaching,to be decom
-Lenovo,T14 Gen 4,PF4NQPWK,SGSIN1BL5002,Laptop,9-Jan-2024,8-Jan-2027,Toa Payoh,null,teaching,deployed
-Lenovo,T16 Gen 1,PF4FBG5G,SGSIN1BL5006,Laptop,1-Aug-2023,1-Aug-2026,Napier,Server Room,Human Resources,pending deployment
-Dell,Latitude 7280 ,3czb0n2,SGSIN1BL5008,Laptop,5-Mar-2018,5-Mar-2021,Napier,null,teaching,deployed
-Lenovo,L13 Gen 2,PW009TJT,SGSIN1BL5009,laptop,14-Jun-2022,13-Jun-2025,,null,global operations,deployed
-Dell,Latitude 7280,9H4C0N2,SGSIN1BL5010,Laptop,5-Mar-2018,5-Mar-2021,Napier,Server Room,teaching,to be decom
-Dell,Latitude 7280,hhq70n2,SGSIN1BL5011,Laptop,5-Mar-2018,5-Mar-2021,Napier,Server Room,exams,to be decom
-Dell,Latitude 7490,3Q15672,SGSIN1BL5015 ,laptop,12-Sep-2017,13-Sep-2020,,null,global operations,deployed
-Lenovo,T14 Gen 4,PF4NQ75L,SGSIN1BL5016,Laptop,11-Nov-2023,25-Dec-2026,Napier,Server Room,teaching,deployed
-Lenovo,T16 Gen 1,PF4K5D7A,SGSIN1BL5017,Laptop,1-Sep-2023,15-Oct-2026,Napier,null,finance,deployed
-
-histlog:
-null,SGSIN1BL0144,null,swap for BMLBZY2; using Lenovo USB-C Charger,null
-null,SGSIN1BL5001,null,null,null
-null,SGSIN1BL5002,null,null,null
-null,SGSIN1BL5006,null,upgrade,null
-null,SGSIN1BL5008,null,Passed to Ian Smith; serial number S3CZB0N2 is wrong;,null
-null,SGSIN1BL5009,null,Active,null
-null,SGSIN1BL5010,null,battery removed to replace a bloated battery in another laptop, SGSIN1BLXXXX, owner vivian.wee@britishcouncil.org.sg,null
-null,SGSIN1BL5011,null,passed to Linda Leong to be used as exam's CCTV management machine,null
-null,SGSIN1BL5015 ,null,Yes,null
-null,SGSIN1BL5016,null,null,null
-null,SGSIN1BL5017,null,null,null
-
-
-prevown:
-null,BL,new,central budget,null
-null,BL,new,central budget,null
-null,BL,new,central budget,null
-null,BL,new,central budget,null
-null,BL,new,central budget,null
-null,BL,new,central budget,null
-17-Dec-2023,BL,new,central budget,null
-17-Dec-2023,BL,new,central budget,null
-
-currown:
-28-Aug-2024,SGSIN1BL0144,resource,current_owner,null
-23-Aug-2024,SGSIN1BL5001,resource,current_owner,null
-11-Jan-2023,SGSIN1BL5002,Marvin Ang,current_owner,null
-26-Feb-2023,SGSIN1BL5008,ian.smith@britishcouncil.org.sg,current_owner,null
-null,SGSIN1BL5009,daniel.entwistle@britishcouncil.org,current_owner,null
-null,SGSIN1BL5010,resource,current_owner,null
-21-Aug-2024,SGSIN1BL5011,linda.leongkumyen@britishcouncil.org,current_owner,null
-null,SGSIN1BL5015,jessica.low@britishcouncil.org,current_owner,null
-6-Mar-2024,SGSIN1BL5016,joselyn.heng@britishcouncil.org,current_owner,null
-30-Apr-2024,SGSIN1BL5017,peterdavid.hamilton@britishcouncil.org.sg,current_owner,null
+mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv --tables prevown > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/backupBcinvPrevown15dec2024.sql
 
 
 
+select user from currown where user not like'%@%' and user not like'%room%' and user not like'%area%' and user not like'%house%' and user not like'%40%' order by user;
 
 
-systems read by hostname:
+select user from currown where user not like'%@%' and user not like'%room%' and user not like'%area%' and user not like'%house%' and user not like'%40%' order by user
+into outfile "/var/lib/mysql-files/haha.csv"
+fields terminated by ',' enclosed by '"'
+lines terminated by '\n';
 
-python main.py
+select user from prevown where user not like'%@%' and user not like'%room%' and user not like'%area%' and user not like'%house%' and user not like'%40%' and user not like 'new' order by user
+into outfile "/var/lib/mysql-files/haha.csv"
+fields terminated by ',' enclosed by '"'
+lines terminated by '\n';
+
+
+scp hussein@66.96.216.133:/var/lib/mysql-files/haha.csv C:/Users/MLSI-HusseinAhmed/source/repos/web_development/bcInventory/tables_in_csv/hahaCopied.csv
+
+insert into systems
+values(
+'dell',
+'latitude 1234',
+'abcdefg',
+'SGSIN1BL9999',
+'laptop',
+'2024 mar 21',
+'2027 mar 22',
+'napier',
+'server room',
+'regional',
+'pending deployment'
+);
+
+
+insert into users
+values(
+'bernard.gregory@britishcouncil.org',
+'teaching'
+);
+
+select model, hostname, shipdate, warrexp, department, status from systems order by hostname;
+
+
 hussein
 juventude
-s
-r
-hostname
+i
+sgsin1bl8090
+eugene.seow@britishcouncil.org
 x
 x
 
-systems add:
-
-python main.py
 hussein
 juventude
-s
-c
-Lenovo,T14 Gen 4,PF4NQPWK,SGSIN1BL5002,Laptop,9-Jan-2024,8-Jan-2027,Toa Payoh,null,teaching,deployed
+i
+sgsin1bl8090
+ali.daud@britishcouncil.org
 x
 x
 
-
-log add currown:
-
-python main.py
 hussein
 juventude
-c
-c
-26-Feb-2023,SGSIN1BL5008,ian.smith@britishcouncil.org.sg,current_owner,null
+i
+sgsin1bl8090
+nelson.vivas@britishcouncil.org
+2024 dec 23
+n
 x
 x
-
 
