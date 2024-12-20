@@ -1,5 +1,6 @@
 mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv --tables prevown > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/backupBcinvPrevown15dec2024.sql
 
+mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/singledb_backup_2024dec20.sql
 
 
 select user from currown where user not like'%@%' and user not like'%room%' and user not like'%area%' and user not like'%house%' and user not like'%40%' order by user;
@@ -40,32 +41,27 @@ values(
 'teaching'
 );
 
-select model, hostname, shipdate, warrexp, department, status from systems order by hostname;
+select model, hostname, site, department, status from systems order by hostname;
 
 
-hussein
-juventude
-i
-sgsin1bl8090
-eugene.seow@britishcouncil.org
-x
-x
+
+issue:
 
 hussein
 juventude
 i
-sgsin1bl8090
-ali.daud@britishcouncil.org
-x
-x
-
-hussein
-juventude
-i
-sgsin1bl8090
-nelson.vivas@britishcouncil.org
-2024 dec 23
+sgsin1bl8091
+judith.nijboer@britishcouncil.org
+2024 dec 11
 n
 x
 x
 
+return:
+
+hussein
+juventude
+r
+SGSIN4BL0007
+judith.nijboer@britishcouncil.org
+2024 dec 11

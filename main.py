@@ -13,7 +13,7 @@ def mysqlConn():
         exit(1)
     else:
         cls()
-        print('\nconnection success!!!')
+        print('connection success!!!')
         myCursor=mysqlCursor(conn)
         return conn, myCursor
 
@@ -25,12 +25,36 @@ def mysqlCursor(conn):
         exit(1)
     return myCursor
 
-def deviceIssue(conn, cursor):
+def getDetailsReturn():
+    hostname=input('\nenter hostname of device returned by user: ').strip().lower()
+    email=input('\nenter email address of user: ').strip().lower()
+    site=input('\nenter site to store returned device (eg. napier or toa payoh): ').strip().lower()
+    date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
+    return hostname, email, site, date
+
+def getDetailsIssue():
+    hostname=input('\nenter hostname of device to be issued to user: ').strip().lower()
+    email=input('\nenter email address of user: ').strip().lower()
+    date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
+    return hostname, email, date
+
+def getDetailsSwap():
+    hostnameReturn=input('\nenter hostname of device to returned by user: ').strip().lower()
+    hostnameIssue=input('\nenter hostname of device to issue to user: ').strip().lower() 
+    email=input('\nenter email address of user: ').strip().lower()
+    site=input('\nenter site to store returned device (eg. napier or toa payoh): ').strip().lower()
+    date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
+    return hostnameReturn, hostnameIssue, email, site, date
+
+def deviceIssue(conn, cursor, hostname, email, date):
     #new user check begins
-    hostname=input('\nenter hostname of device to issue to user: ').strip().lower()
     result=0
     cursor.execute(f'select department from systems where hostname=\'{hostname}\' and status=\'pending_deployment\'')
-    deviceDepartment=(list(cursor))[0][0].strip().lower()
+    try:
+        deviceDepartment=(list(cursor))[0][0].strip().lower()
+    except IndexError:
+        print(f'host \'{hostname}\' or status \'pending_deployment\' not found in systems table')
+        return
     result=cursor.rowcount
     if result==0:
         cursor.execute(f'select * from systems where hostname=\'{hostname}\'')
@@ -52,7 +76,6 @@ def deviceIssue(conn, cursor):
         print(f'{result} hostname(s) named \'{hostname}\' currently in use by {cursor}')
     #double confirm hostname availability in case the status is reflected correctly in the systems table
 
-    email=input('\nenter email address of user: ').strip().lower()
     cursor.execute(f'select * from users where user=\'{email}\'')
     userDepartment=(list(cursor))[0][1].strip().lower()
     result=cursor.rowcount
@@ -75,13 +98,14 @@ def deviceIssue(conn, cursor):
         return
     # new user check ends
 
-    date=input('enter date in this format: \'yyyy mmm dd\': ').strip().lower()
-    print(f'\nsystems record for \'{hostname}\' before changes:')
-    site, location, status=mysqlRead(cursor, 'systems', hostname)
+    print(f'\nsystems record for \'{hostname}\' before insertion of new record:')
+    mysqlRead(cursor, 'systems', hostname)
+    print(f'\ncurrent owner record for \'{email}\' before insertion of new record:')
+    mysqlRead(cursor, 'currown', hostname)
     #modifications to systems and currown tables for device issuance
     cursor.execute(f'insert into currown values(\'{date}\', \'{hostname}\', \'{email}\')')
-    cursor.execute(f'update systems set site=null, location=null, status=\'deployed\' where hostname=\'{hostname}\'')
-    print(f'\nsystems record for \'{hostname}\' after changes:')
+    cursor.execute(f'update systems set site=null, status=\'deployed\' where hostname=\'{hostname}\'')
+    print(f'\nsystems record for \'{hostname}\' after insertion of new record:')
     mysqlRead(cursor, 'systems', hostname)
     print(f'\ncurrent owner record for \'{email}\' after insertion of new record:')
     mysqlRead(cursor, 'currown', hostname)
@@ -92,27 +116,55 @@ def deviceIssue(conn, cursor):
     else:
         print('\nno updates to database\n')
 
-def devIssueRevert(conn, cursor, site, location, status):
-    print()
-    print(site, location, status)
-    print()
-    hostname=input('enter hostname to revert issuance: ')
-    print(f'\nsystems record for \'{hostname}\' before revertion:')
+def deviceReturn(conn, cursor, hostname, email, site, date):
+    print(f'\nsystems info before update: ')
     mysqlRead(cursor, 'systems', hostname)
-    print(f'\ncurrent owner record for \'{hostname}\' before revertion:')
+    print(f'\ncurrown info before update: ')
     mysqlRead(cursor, 'currown', hostname)
-    cursor.execute(f'delete from currown where hostname=\'{hostname}\'')
-    cursor.execute(f'update systems set site=\'{site}\', location=\'{location}\', status=\'{status}\' where hostname=\'{hostname}\';')
-    print(f'\nsystems record for \'{hostname}\' after revertion:')
+    print(f'\nprevown info before update: ')
+    mysqlRead(cursor, 'prevown', hostname)
+    cursor.execute(f'insert into prevown select * from currown where hostname=\'{hostname}\' and user=\'{email}\'')
+    cursor.execute(f'update prevown set date=\'{date}\' where hostname=\'{hostname}\' and user=\'{email}\'')
+    cursor.execute(f'delete from currown where hostname=\'{hostname}\' and user=\'{email}\'')
+    cursor.execute(f'update systems set site=\'{site}\', status=\'pending_deployment\' where hostname=\'{hostname}\'')
+    print(f'\nsystems info after update: ')
     mysqlRead(cursor, 'systems', hostname)
-    print(f'\ncurrent owner record for \'{hostname}\' after revertion:')
+    print(f'\ncurrown info after update: ')
     mysqlRead(cursor, 'currown', hostname)
+    print(f'\nprevown info after update: ')
+    mysqlRead(cursor, 'prevown', hostname)
     commit=input('\ncommit? y/n: ')
     if(commit=='y'):
         conn.commit()
         print('\nmodifications saved!\n')
     else:
         print('\nno updates to database\n')
+
+def deviceSwap(conn, cursor, hostnameReturn, hostnameIssue, email, site, date):
+    deviceReturn(conn, cursor, hostnameReturn, email, site, date)
+    deviceIssue(conn, cursor, hostnameIssue, email, date)
+
+# def devIssueRevert(conn, cursor, site, location, status):
+#     print()
+#     print(site, location, status)
+#     print()
+#     hostname=input('enter hostname to revert issuance: ')
+#     print(f'\nsystems record for \'{hostname}\' before revertion:')
+#     mysqlRead(cursor, 'systems', hostname)
+#     print(f'\ncurrent owner record for \'{hostname}\' before revertion:')
+#     mysqlRead(cursor, 'currown', hostname)
+#     cursor.execute(f'delete from currown where hostname=\'{hostname}\'')
+#     cursor.execute(f'update systems set site=\'{site}\', location=\'{location}\', status=\'{status}\' where hostname=\'{hostname}\';')
+#     print(f'\nsystems record for \'{hostname}\' after revertion:')
+#     mysqlRead(cursor, 'systems', hostname)
+#     print(f'\ncurrent owner record for \'{hostname}\' after revertion:')
+#     mysqlRead(cursor, 'currown', hostname)
+#     commit=input('\ncommit? y/n: ')
+#     if(commit=='y'):
+#         conn.commit()
+#         print('\nmodifications saved!\n')
+#     else:
+#         print('\nno updates to database\n')
 
 
 
@@ -138,20 +190,14 @@ def mysqlCreateCurrOwn(cursor, table):
 
 def mysqlRead(cursor, table, readParam):
     cursor.execute(f'select * from {table} where hostname=\'{readParam}\'')
-    blah=[]
-    for i in cursor:
-        for j in i:
-            blah.append(j)
+    blah=cursor.fetchall()
     blah2=readColumns(cursor, table)
-    print()
+    print('########################################')
     for i in range(0, len(blah), 1):
-        if(blah2[i]=='site'):
-            site=blah[i]
-        if(blah2[i]=='location'):
-            location=blah[i]
-        if(blah2[i]=='status'):
-            status=blah[i]
-        print(f'{blah2[i]: <12}: {blah[i]}')
+        for j in range(0, len(blah2), 1):
+            print(f'{blah2[j]: <12}: {blah[i][j]}')
+        print('########################################')
+    print('########################################')
 
 def mysqlDelete(cursor, table, delParam):
     cursor.execute(f'delete from {table} where hostname=\'{delParam}\'')
@@ -174,12 +220,20 @@ def choiceSelectTables(conn, cursor):
 # h for histlogs
 # p for prevown
 # c for currown
+# r for device issue revertion
+    hostnameIssue=''
+    hostnameReturn=''
+    email=''
+    site=''
+    date=''
     while True:
         table=input('''
 enter an option:
+                    
 i for device issuance
-r for device issue revertion
+r for device return
 x to exit
+
 ''')
         match table:
             # case 's':
@@ -191,9 +245,15 @@ x to exit
             # case 'c':
             #     table='currown'
             case 'i':
-                deviceIssue(conn, cursor)
+                hostnameIssue, email, date=getDetailsIssue()
+                deviceIssue(conn, cursor, hostnameIssue, email, date)
             case 'r':
-                devIssueRevert(conn, cursor, 'napier', 'server room', 'pending_deployment')
+                hostnameIssue, email, site, date=getDetailsReturn()
+                deviceReturn(conn, cursor, hostnameIssue, email, site, date)
+            case 's':
+                deviceSwap(conn, cursor, hostnameReturn, hostnameIssue, email, site, date)
+            # case 'r':
+            #     devIssueRevert(conn, cursor, 'napier', 'server room', 'pending_deployment')
             case 'x':
                 return table
             case _:
