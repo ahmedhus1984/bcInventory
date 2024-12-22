@@ -21,17 +21,16 @@ scp hussein@66.96.216.133:/var/lib/mysql-files/haha.csv C:/Users/MLSI-HusseinAhm
 
 insert into systems
 values(
-'dell',
-'latitude 1234',
-'abcdefg',
-'SGSIN1BL9999',
+'lenovo',
+'t1000',
+'po90po3f',
+'SGSIN1BL8888',
 'laptop',
 '2024 mar 21',
 '2027 mar 22',
 'napier',
-'server room',
 'regional',
-'pending deployment'
+'pending_deployment'
 );
 
 
