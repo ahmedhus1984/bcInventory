@@ -25,6 +25,15 @@ def mysqlCursor(conn):
         exit(1)
     return myCursor
 
+def getDetailsAddSystems():
+    brand, model, serial, hostname, type, shipdate, warrexp, site, department=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, department seperated by comma:\n').split(',')
+    return brand, model, serial, hostname, type, shipdate, warrexp, site, department
+
+def getDetailsAddDeleteUser():
+    email=input('\nenter email address of user: ').strip().lower()
+    department=input('\nenter department of user: ').strip().lower()
+    return email, department
+
 def getDetailsReturn():
     hostname=input('\nenter hostname of device returned by user: ').strip().lower()
     email=input('\nenter email address of user: ').strip().lower()
@@ -45,6 +54,52 @@ def getDetailsSwap():
     site=input('\nenter site to store returned device (eg. napier or toa payoh): ').strip().lower()
     date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
     return hostnameReturn, hostnameIssue, email, site, date
+
+def addUser(conn, cursor, email, department):
+    print(f'\nusers record for \'{email}\' before insertion of new record, {email}:')
+    mysqlRead(cursor, 'users', 'user', email)
+    
+    #modifications to users table
+    try:
+        cursor.execute(f'insert into users values(\'{email}\', \'{department}\')')
+    except:
+        print('unable to insert user, please check if there is an existing record for the user or if any typo')
+    #modifications to users table
+    
+    print(f'\nusers record for \'{email}\' after insertion of new record, {email}:')
+    mysqlRead(cursor, 'users', 'user', email)
+    
+    #save modifications
+    commit=input('\ncommit? y/n: ')
+    if(commit=='y'):
+        conn.commit()
+        print('\nmodifications saved!\n')
+    else:
+        print('\nno updates to database\n')
+    #save modifications
+
+def delUser(conn, cursor, email):
+    print(f'\nusers record for \'{email}\' before deletion of {email}:')
+    mysqlRead(cursor, 'users', 'user', email)
+    
+    #modifications to users table
+    try:
+        cursor.execute(f'delete from users where user=\'{email}\'')
+    except:
+        print('unable to delete user, please check if there is an existing record for the user or if any typo')
+    #modifications to users table
+    
+    print(f'\nusers record for \'{email}\' after deletion of {email}:')
+    mysqlRead(cursor, 'users', 'user', email)
+    
+    #save modifications
+    commit=input('\ncommit? y/n: ')
+    if(commit=='y'):
+        conn.commit()
+        print('\nmodifications saved!\n')
+    else:
+        print('\nno updates to database\n')
+    #save modifications
 
 def deviceIssue(conn, cursor, hostname, email, date):
     #issue check begins
@@ -83,9 +138,9 @@ def deviceIssue(conn, cursor, hostname, email, date):
     #issue check ends
 
     print(f'\nsystems record for \'{hostname}\' before insertion of new record:')
-    mysqlRead(cursor, 'systems', hostname)
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
     print(f'\ncurrent owner record for \'{email}\' before insertion of new record:')
-    mysqlRead(cursor, 'currown', hostname)
+    mysqlRead(cursor, 'currown', 'hostname', hostname)
 
     #modifications to systems and currown tables for device issuance
     cursor.execute(f'insert into currown values(\'{date}\', \'{hostname}\', \'{email}\')')
@@ -93,9 +148,9 @@ def deviceIssue(conn, cursor, hostname, email, date):
     #modifications to systems and currown tables for device issuance
 
     print(f'\nsystems record for \'{hostname}\' after insertion of new record:')
-    mysqlRead(cursor, 'systems', hostname)
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
     print(f'\ncurrent owner record for \'{email}\' after insertion of new record:')
-    mysqlRead(cursor, 'currown', hostname)
+    mysqlRead(cursor, 'currown', 'hostname', hostname)
 
     #save modifications
     commit=input('\ncommit? y/n: ')
@@ -142,11 +197,11 @@ def deviceReturn(conn, cursor, hostname, email, site, date):
     #return check ends
 
     print(f'\nsystems info before update: ')
-    mysqlRead(cursor, 'systems', hostname)
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
     print(f'\ncurrown info before update: ')
-    mysqlRead(cursor, 'currown', hostname)
+    mysqlRead(cursor, 'currown', 'hostname', hostname)
     print(f'\nprevown info before update: ')
-    mysqlRead(cursor, 'prevown', hostname)
+    mysqlRead(cursor, 'prevown', 'hostname', hostname)
 
     #modifications to systems and currown tables for device issuance 
     cursor.execute(f'insert into prevown select * from currown where hostname=\'{hostname}\' and user=\'{email}\'')
@@ -156,11 +211,11 @@ def deviceReturn(conn, cursor, hostname, email, site, date):
     #modifications to systems and currown tables for device issuance
     
     print(f'\nsystems info after update: ')
-    mysqlRead(cursor, 'systems', hostname)
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
     print(f'\ncurrown info after update: ')
-    mysqlRead(cursor, 'currown', hostname)
+    mysqlRead(cursor, 'currown', 'hostname', hostname)
     print(f'\nprevown info after update: ')
-    mysqlRead(cursor, 'prevown', hostname)
+    mysqlRead(cursor, 'prevown', 'hostname', hostname)
 
     #save modifications
     commit=input('\ncommit? y/n: ')
@@ -180,34 +235,29 @@ def deviceSwap(conn, cursor, hostnameReturn, hostnameIssue, email, site, date):
     else:
         print('swap safely aborted')
 
-# def devIssueRevert(conn, cursor, site, location, status):
-#     print()
-#     print(site, location, status)
-#     print()
-#     hostname=input('enter hostname to revert issuance: ')
-#     print(f'\nsystems record for \'{hostname}\' before revertion:')
-#     mysqlRead(cursor, 'systems', hostname)
-#     print(f'\ncurrent owner record for \'{hostname}\' before revertion:')
-#     mysqlRead(cursor, 'currown', hostname)
-#     cursor.execute(f'delete from currown where hostname=\'{hostname}\'')
-#     cursor.execute(f'update systems set site=\'{site}\', location=\'{location}\', status=\'{status}\' where hostname=\'{hostname}\';')
-#     print(f'\nsystems record for \'{hostname}\' after revertion:')
-#     mysqlRead(cursor, 'systems', hostname)
-#     print(f'\ncurrent owner record for \'{hostname}\' after revertion:')
-#     mysqlRead(cursor, 'currown', hostname)
-#     commit=input('\ncommit? y/n: ')
-#     if(commit=='y'):
-#         conn.commit()
-#         print('\nmodifications saved!\n')
-#     else:
-#         print('\nno updates to database\n')
+def addSystem(conn, cursor, brand, model, serial, hostname, type, shipdate, warrexp, site, department):
+    print(f'\nsystems record for \'{hostname}\' before insertion:')
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
 
+    #modifications to users table
+    try:
+        cursor.execute(f'insert into systems (brand, model, serial, hostname, type, shipdate, warrexp, site, department) values("{brand}", "{model}", "{serial}", "{hostname}", "{type}", "{shipdate}", "{warrexp}", "{site}", "{department}")')
+    except:
+        print(f'unable to insert new machine, \'{hostname}\' into systems table')
+    #modifications to users table
 
+    print(f'\nsystems record for \'{hostname}\' after insertion:')
+    mysqlRead(cursor, 'systems', 'hostname', hostname)
 
-def mysqlCreateSystems(cursor, table):
-    brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status seperated by comma:\n').split(',')
-    print(brand+'\n'+model+'\n'+serial+'\n'+hostname+'\n'+type+'\n'+shipdate+'\n'+warrexp+'\n'+site+'\n'+location+'\n'+devdep+'\n'+status)
-    cursor.execute(f'insert into {table} (brand, model, serial, hostname, type, shipdate, warrexp, site, location, devdep, status) values("{brand}", "{model}", "{serial}", "{hostname}", "{type}", "{shipdate}", "{warrexp}", "{site}", "{location}", "{devdep}", "{status}")')
+    #save modifications
+    commit=input('\ncommit? y/n: ')
+    if(commit=='y'):
+        conn.commit()
+        print('\nmodifications saved!\n')
+    else:
+        print('\nno updates to database\n')
+    #save modifications
+
 
 def mysqlCreateHistLog(cursor, table):
     date, hostname, user, log, remarks=input('enter date, hostname, user, log, remarks seperated by comma:\n').split(',')
@@ -224,8 +274,8 @@ def mysqlCreateCurrOwn(cursor, table):
     print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
     cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
 
-def mysqlRead(cursor, table, readParam):
-    cursor.execute(f'select * from {table} where hostname=\'{readParam}\'')
+def mysqlRead(cursor, table, column, readParam):
+    cursor.execute(f'select * from {table} where {column}=\'{readParam}\'')
     blah=cursor.fetchall()
     blah2=readColumns(cursor, table)
     print('########################################')
@@ -256,16 +306,19 @@ def choiceSelectTables(conn, cursor):
 # h for histlogs
 # p for prevown
 # c for currown
-# r for device issue revertion
     hostnameIssue=''
     hostnameReturn=''
     email=''
+    department=''
     site=''
     date=''
     while True:
         table=input('''
 enter an option:
                     
+a for adding user
+d for deleting user
+as for adding a machine
 i for device issuance
 r for device return
 s for device swap
@@ -289,10 +342,16 @@ x to exit
                 deviceReturn(conn, cursor, hostnameIssue, email, site, date)
             case 's':
                 hostnameReturn, hostnameIssue, email, site, date=getDetailsSwap()
-
                 deviceSwap(conn, cursor, hostnameReturn, hostnameIssue, email, site, date)
-            # case 'r':
-            #     devIssueRevert(conn, cursor, 'napier', 'server room', 'pending_deployment')
+            case 'a':
+                email, department=getDetailsAddDeleteUser()
+                addUser(conn, cursor, email, department)
+            case 'd':
+                email, department=getDetailsAddDeleteUser()
+                delUser(conn, cursor, email)
+            case 'as':
+                brand, model, serial, hostname, type, shipdate, warrexp, site, department=getDetailsAddSystems()
+                addSystem(conn, cursor, brand, model, serial, hostname, type, shipdate, warrexp, site, department)
             case 'x':
                 return table
             case _:
@@ -316,7 +375,7 @@ x to exit
 #                 conn.commit()
 #             case 'r': 
 #                 readParam=input('enter hostname to read: ')
-#                 mysqlRead(cursor, table, readParam)
+#                 mysqlRead(cursor, table, 'hostname', readParam)
 #             case 'd': 
 #                 delParam=input('enter hostname to delete: ')
 #                 mysqlDelete(cursor, table, delParam)
