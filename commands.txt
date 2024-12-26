@@ -4,9 +4,9 @@ use bcinv
 
 
 
-mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv --tables prevown > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/backupBcinvPrevown15dec2024.sql
+mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv --tables prevown > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/latestTableBackup.sql
 
-mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/singledb_backup_2024dec23.sql
+mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/latestBcinvDbBackup.sql
 
 
 select user from currown where user not like'%@%' and user not like'%room%' and user not like'%area%' and user not like'%house%' and user not like'%40%' order by user;
@@ -27,7 +27,7 @@ scp hussein@66.96.216.133:/var/lib/mysql-files/haha.csv C:/Users/MLSI-HusseinAhm
 
 
 lenovo,t14 gen 5,Psdfsdf,SGSIN1BL1234,laptop,2024 Dec 10,2027 Dec 09,napier,premises
-
+apple,macbook pro 2025,mbp2025xfgdt,sgsin1bl7781,laptop,2024 may 12,2027 may 11,napier,regional
 
 
 
@@ -48,7 +48,7 @@ values(
 
 select model, hostname, site, department, status from systems order by hostname;
 
-
+apple,macbook pro 2025,mbp2025xfgdt,sgsin1bl7781,laptop,2024 may 12,2027 may 11,napier,regional
 
 issue:
 
