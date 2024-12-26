@@ -4,20 +4,17 @@ import yaml
 def mysqlConn():
     database=yaml.safe_load(open('db.yaml'))
     conn=mysql.connector.connect(host=database['mysql_host'], user=database['mysql_user'], passwd=database['mysql_password'], db=database['mysql_db'])
-    if not conn.is_connected():
-        print('unable to connect to sql server.')
-        exit(1)
-    else:
-        # print('connection success!!!')
+    if conn.is_connected():
         myCursor=mysqlCursor(conn)
-        return conn, myCursor
+        if myCursor:
+            return conn, myCursor
+    return False
 
 def mysqlCursor(conn):
     myCursor=conn.cursor(buffered=True)
     if not myCursor:
-        print('unable to create cursor')
         conn.close()
-        exit(1)
+        return False
     return myCursor
 
 def mysqlRead(cursor, table, column, readParam):
@@ -60,7 +57,6 @@ def addUser(email, department):
     try:
         cursor.execute(f'insert into users values(\'{email}\', \'{department}\')')
     except:
-        print('unable to insert user, please check if there is an existing record for the user or if any typo')
         return False
     conn.commit()
     conn.close()
@@ -134,7 +130,6 @@ def addSystem(brand, model, serial, hostname, type, shipdate, warrexp, site, dep
     try:
         cursor.execute(f'insert into systems (brand, model, serial, hostname, type, shipdate, warrexp, site, department) values("{brand}", "{model}", "{serial}", "{hostname}", "{type}", "{shipdate}", "{warrexp}", "{site}", "{department}")')
     except:
-        print(f'unable to insert new machine, \'{hostname}\' into systems table')
         return False
     conn.commit()
     conn.close()
@@ -202,7 +197,6 @@ def deviceIssueChecks(hostname, email):
     cursor.execute(f'select department from systems where hostname=\'{hostname}\' and status=\'pending_deployment\'')
     result=cursor.rowcount
     if result==0:
-        print(f'either host \'{hostname}\' not found or host \'{hostname}\' has a status other than \'pending_deployment\' in systems table\n\nplease contact database admin')
         conn.close()
         return False
     contents=cursor.fetchall()
@@ -210,30 +204,23 @@ def deviceIssueChecks(hostname, email):
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
     cursor.execute(f'select * from currown where hostname=\'{hostname}\'')
     result=cursor.rowcount
-    if result==0:
-        print('hostname currently not in use, available for deployment')
-    else:
+    if result!=0:
         contents=cursor.fetchall()
-        print(f'{result} hostname(s) named \'{hostname}\' currently in use by {contents[0][0]}...please contact database admin')
         conn.close()
         return False
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
     cursor.execute(f'select * from users where user=\'{email}\'')
     result=cursor.rowcount
     if result==0:
-        print('user not found...please contact database admin')
         conn.close()
         return False
     else:
         contents=cursor.fetchall()
         userDepartment=contents[0][1].strip().lower()
-        print(f'{result} user(s) with username, \'{email}\' found')
     if userDepartment==deviceDepartment:
-        print('\ndepartments for user and device match...device can be issued to user')
         conn.close()
         return True
     else:
-        print('\ndepartments for user and device are different...please contact database admin')
         conn.close()
         return False
 
@@ -259,7 +246,6 @@ def deviceIssue(hostname, email, date):
         cursor.execute(f'insert into currown values(\'{date}\', \'{hostname}\', \'{email}\')')
         cursor.execute(f'update systems set site=null, status=\'deployed\' where hostname=\'{hostname}\'')
     except:
-        print(f'unable to make modifications for issuance of device \'{hostname}\' to user \'{email}\' into systems table')
         return False
     conn.commit()
     conn.close()
@@ -294,7 +280,6 @@ def deviceReturnChecks(hostname, email):
     cursor.execute(f'select department from systems where hostname=\'{hostname}\' and status=\'deployed\'')
     result=cursor.rowcount
     if result==0:
-        print(f'either host \'{hostname}\' not found or host \'{hostname}\' has a status other than \'deployed\' in systems table\n\nplease contact database admin')
         conn.close()
         return False
     contents=cursor.fetchall()
@@ -302,29 +287,22 @@ def deviceReturnChecks(hostname, email):
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
     cursor.execute(f'select * from currown where hostname=\'{hostname}\'')
     result=cursor.rowcount
-    if result==1:
-        print('hostname currently deployed, available for return')
-    else:
-        print(f'hostname \'{hostname}\' has no records for current owner...please contact database admin')
+    if result!=1:
         conn.close()
         return False
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
     cursor.execute(f'select * from users where user=\'{email}\'')
     result=cursor.rowcount
     if result==0:
-        print('user not found...please contact database admin')
         conn.close()
         return False
     else:
         contents=cursor.fetchall()
         userDepartment=contents[0][1].strip().lower()
-        print(f'{result} user(s) with username, \'{email}\' found')
     if userDepartment==deviceDepartment:
-        print('\ndepartments for user and device match...device can be returned by user')
         conn.close()
         return True
     else:
-        print('\ndepartments for user and device are different...please contact database admin')
         conn.close()
         return False
 
@@ -356,7 +334,6 @@ def deviceReturn(hostname, email, site, date):
         cursor.execute(f'delete from currown where hostname=\'{hostname}\' and user=\'{email}\'')
         cursor.execute(f'update systems set site=\'{site}\', status=\'pending_deployment\' where hostname=\'{hostname}\'')
     except:
-        print(f'unable to make modifications for return of device \'{hostname}\' to user \'{email}\' into systems table')
         return False
     conn.commit()
     conn.close()
@@ -380,9 +357,6 @@ def postDeviceReturnStatus(hostname):
     for i in prevownString2:
         prevownString.append(i)
     conn.close()
-    print(systemsString)
-    print(currownString)
-    print(prevownString)
     return systemsString, currownString, prevownString
 
 
@@ -400,7 +374,6 @@ def swapDeviceIssue(cursor, hostname, email, date):
         cursor.execute(f'insert into currown values(\'{date}\', \'{hostname}\', \'{email}\')')
         cursor.execute(f'update systems set site=null, status=\'deployed\' where hostname=\'{hostname}\'')
     except:
-        print(f'unable to make modifications for issuance of device \'{hostname}\' to user \'{email}\' into systems table')
         return False
     return True
 
@@ -411,22 +384,19 @@ def swapDeviceReturn(cursor, hostname, email, site, date):
         cursor.execute(f'delete from currown where hostname=\'{hostname}\' and user=\'{email}\'')
         cursor.execute(f'update systems set site=\'{site}\', status=\'pending_deployment\' where hostname=\'{hostname}\'')
     except:
-        print(f'unable to make modifications for return of device \'{hostname}\' to user \'{email}\' into systems table')
         return False
     return True
 
 def deviceSwap(hostnameReturn, hostnameIssue, email, site, date):
     conn, cursor=mysqlConn()
+    x=False
     returnList=[]
     issueList=[]
     returnIssueList=[]
     if(deviceReturnChecks(hostnameReturn, email)):
         if(deviceIssueChecks(hostnameIssue, email)):
-            print()
             returnList.append(preDeviceReturnStatus(hostnameReturn))
-            print()
             issueList.append(preDeviceIssueStatus(hostnameIssue))
-            print()
             if swapDeviceReturn(cursor, hostnameReturn, email, site, date):
                 returnList.append(postDeviceReturnStatus(hostnameReturn))
                 returnIssueList.append(returnList)
@@ -435,14 +405,23 @@ def deviceSwap(hostnameReturn, hostnameIssue, email, site, date):
                     returnIssueList.append(issueList)
                     conn.commit()
                     conn.close()
-                    return returnIssueList
+                    x=returnIssueList
     conn.close()
-    return 'swap update failed but safely aborted'
+    return x
 
-def mysqlCreateHistLog(cursor, table):
-    date, hostname, user, log, remarks=input('enter date, hostname, user, log, remarks seperated by comma:\n').split(',')
-    print(date+'\n'+hostname+'\n'+user+'\n'+log+'\n'+remarks)
-    cursor.execute(f'insert into {table} (date, hostname, user, log, remarks) values("{date}", "{hostname}", "{user}", "{log}", "{remarks}")')
+def getDetailsLogs():
+    date, hostname, user, remarks=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, department seperated by comma:\n').split(',')
+    return date, hostname, user, remarks
+
+def addLogs(date, hostname, user, remarks):
+    conn, cursor=mysqlConn()
+    try:
+        cursor.execute(f'insert into logs(date, hostname, user, remarks) values("{date}", "{hostname}", "{user}", "{remarks}")')
+    except:
+        return False
+    conn.commit()
+    conn.close()
+    return True
 
 def choiceSelectTables():
     hostnameIssue=''
@@ -451,6 +430,8 @@ def choiceSelectTables():
     department=''
     site=''
     date=''
+    user=''
+    remarks=''
     while True:
         table=input('''
 enter an option:
@@ -462,6 +443,7 @@ d for deleting user
 i for device issuance
 r for device return
 s for device swap
+l for logging
 x to exit
 
 ''')
@@ -527,6 +509,9 @@ x to exit
                 print()
                 print(postDelSystem(hostname))
                 print()
+            case 'l':
+                date, hostname, user, remarks=getDetailsLogs()
+                addLogs(date, hostname, user, remarks)
             case 'x':
                 return table
             case _:
