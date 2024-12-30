@@ -48,7 +48,7 @@ values(
 
 select model, hostname, site, department, status from systems order by hostname;
 
-apple,macbook pro 2025,mbp2025xfgdt,sgsin1bl7781,laptop,2024 may 12,2027 may 11,napier,regional
+apple,macbook air 2025,mbp2025abcd,sgsin1bl7782,laptop,2024 may 12,2027 may 11,napier,regional
 
 issue:
 

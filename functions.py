@@ -8,34 +8,62 @@ def mysqlConn():
         myCursor=mysqlCursor(conn)
         if myCursor:
             return conn, myCursor
+    conn.close()
     return False
 
 def mysqlCursor(conn):
     myCursor=conn.cursor(buffered=True)
     if not myCursor:
-        conn.close()
         return False
     return myCursor
 
-def mysqlRead(cursor, table, column, readParam):
-    cursor.execute(f'select * from {table} where {column}=\'{readParam}\'')
+def connClose(conn, cursor):
+    cursor.close()
+    conn.close()
+
+def getDetailsSearch():
+    table, column, param=input('enter table, column and param seperated by comma:\n').split(',')
+    return table, column, param
+
+def mysqlSearch(table, column, readParam):
+    conn, cursor=mysqlConn()
+    query=f'SELECT * FROM {table} WHERE {column} = %s'
+    cursor.execute(query, (readParam,))
     blah=cursor.fetchall()
-    blah2=readColumns(cursor, table)
-    blah3=[]
-    blah3.append('########################################')
-    for i in range(0, len(blah), 1):
-        for j in range(0, len(blah2), 1):
-            blah3.append(f'{blah2[j]: <12}: {blah[i][j]}')
+    if len(blah)!=0:
+        blah2=readColumns(cursor, table)
+        blah3=[]
+        for i in range(0, len(blah), 1):
+            blah3.append('########################################')
+            for j in range(0, len(blah2), 1):
+                blah3.append(f'{blah2[j]: <12}: {blah[i][j]}')
         blah3.append('########################################')
-    blah3.append('########################################')
-    return blah3
+        connClose(conn, cursor)
+        return blah3
+    connClose(conn, cursor)
+    return None
 
 def readColumns(cursor, table):
-    cursor.execute(f'desc {table}')
+    query=f'desc {table}'
+    cursor.execute(query)
     blah=[]
     for i in cursor:
         blah.append(i[0])
     return blah
+
+def getDetailsLogs():
+    date, hostname, user, remarks=input('enter date, hostname, user, remarks seperated by comma:\n').split(',')
+    return date, hostname, user, remarks
+
+def addLogs(date, hostname, user, remarks):
+    conn, cursor=mysqlConn()
+    try:
+        cursor.execute(f'insert into logs(date, hostname, user, remarks) values("{date}", "{hostname}", "{user}", "{remarks}")')
+    except:
+        return False
+    conn.commit()
+    conn.close()
+    return True
 
 def getDetailsAddDeleteUser():
     email=input('\nenter email address of user: ').strip().lower()
@@ -43,13 +71,12 @@ def getDetailsAddDeleteUser():
     return email, department
 
 def preAddUser(email):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nusers record for \'{email}\' before insertion:')
-    myString2=mysqlRead(cursor, 'users', 'user', email)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('users', 'user', email)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def addUser(email, department):
@@ -57,58 +84,50 @@ def addUser(email, department):
     try:
         cursor.execute(f'insert into users values(\'{email}\', \'{department}\')')
     except:
+        connClose(conn, cursor)
         return False
     conn.commit()
-    conn.close()
+    connClose(conn, cursor)
     return True
 
 
 def postAddUser(email):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nusers record for \'{email}\' after insertion:')
-    myString2=mysqlRead(cursor, 'users', 'user', email)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('users', 'user', email)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def preDelUser(email):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nusers record for \'{email}\' before deletion:')
-    myString2=mysqlRead(cursor, 'users', 'user', email)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('users', 'user', email)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def delUser(email, department): 
     conn, cursor=mysqlConn()
     try:
-        cursor.execute(f'select * from users where user=\'{email}\' and department=\'{department}\'')
-    except:
-        return False
-    blah=cursor.fetchall()
-    if len(blah)==0:
-        return False
-    try:
         cursor.execute(f'delete from users where user=\'{email}\' and department=\'{department}\'')
     except:
+        connClose(conn, cursor)
         return False
     conn.commit()
-    conn.close()
+    connClose(conn, cursor)
     return True
 
 def postDelUser(email):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nusers record for \'{email}\' after deletion:')
-    myString2=mysqlRead(cursor, 'users', 'user', email)
-    for i in myString2:
-        if i:
-            myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('users', 'user', email)
+    if myString2:
+        for i in myString2:
+            if i:
+                myString.append(i)
     return myString
 
 def getDetailsAddSystem():
@@ -116,13 +135,12 @@ def getDetailsAddSystem():
     return brand, model, serial, hostname, type, shipdate, warrexp, site, department
 
 def preAddSystem(hostname):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nsystems record for \'{hostname}\' before insertion:')
-    myString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('systems', 'hostname', hostname)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def addSystem(brand, model, serial, hostname, type, shipdate, warrexp, site, department):
@@ -130,19 +148,19 @@ def addSystem(brand, model, serial, hostname, type, shipdate, warrexp, site, dep
     try:
         cursor.execute(f'insert into systems (brand, model, serial, hostname, type, shipdate, warrexp, site, department) values("{brand}", "{model}", "{serial}", "{hostname}", "{type}", "{shipdate}", "{warrexp}", "{site}", "{department}")')
     except:
+        connClose(conn, cursor)
         return False
     conn.commit()
-    conn.close()
+    connClose(conn, cursor)
     return True
 
 def postAddSystem(hostname):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nsystems record for \'{hostname}\' after insertion:')
-    myString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('systems', 'hostname', hostname)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def getDetailsDelSystem():
@@ -150,40 +168,32 @@ def getDetailsDelSystem():
     return hostname
 
 def preDelSystem(hostname):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nsystems record for \'{hostname}\' before deletion:')
-    myString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('systems', 'hostname', hostname)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def delSystem(hostname):
-    conn, cursor=mysqlConn()
-    try:
-        cursor.execute(f'select * from systems where hostname=\'{hostname}\'')
-    except:
-        return False
-    blah=cursor.fetchall()
-    if len(blah)==0:
-        return False    
+    conn, cursor=mysqlConn()   
     try:
         cursor.execute(f'delete from systems where hostname=\'{hostname}\'')
     except:
+        connClose(conn, cursor)
         return False
     conn.commit()
-    conn.close()
+    connClose(conn, cursor)
     return True
 
 def postDelSystem(hostname):
-    conn, cursor=mysqlConn()
     myString=[]
     myString.append(f'\nsystems record for \'{hostname}\' after deletion:')
-    myString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
-    for i in myString2:
-        myString.append(i)
-    conn.close()
+    myString2=mysqlSearch('systems', 'hostname', hostname)
+    if myString2:
+        for i in myString2:
+            myString.append(i)
     return myString
 
 def getDetailsIssue():
@@ -228,12 +238,12 @@ def preDeviceIssueStatus(hostname):
     conn, cursor=mysqlConn()
     systemsString=[]
     systemsString.append(f'\nsystems record before issue:')
-    systemsString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
+    systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
         systemsString.append(i)
     currownString=[]
     currownString.append(f'\ncurrent owner record before issue:')
-    currownString2=mysqlRead(cursor, 'currown', 'hostname', hostname)
+    currownString2=mysqlSearch('currown', 'hostname', hostname)
     for i in currownString2:
         currownString.append(i)
     conn.close()
@@ -255,12 +265,12 @@ def postDeviceIssueStatus(hostname):
     conn, cursor=mysqlConn()
     systemsString=[]
     systemsString.append(f'\nsystems record after issue:')
-    systemsString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
+    systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
         systemsString.append(i)
     currownString=[]
     currownString.append(f'\ncurrent owner record after issue:')
-    currownString2=mysqlRead(cursor, 'currown', 'hostname', hostname)
+    currownString2=mysqlSearch('currown', 'hostname', hostname)
     for i in currownString2:
         currownString.append(i)
     conn.close()
@@ -310,17 +320,17 @@ def preDeviceReturnStatus(hostname):
     conn, cursor=mysqlConn()
     systemsString=[]
     systemsString.append(f'\nsystems record before return:')
-    systemsString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
+    systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
         systemsString.append(i)
     currownString=[]
     currownString.append(f'\ncurrent owner record before return:')
-    currownString2=mysqlRead(cursor, 'currown', 'hostname', hostname)
+    currownString2=mysqlSearch('currown', 'hostname', hostname)
     for i in currownString2:
         currownString.append(i)
     prevownString=[]
     prevownString.append(f'\nprevious owner record before return:')
-    prevownString2=mysqlRead(cursor, 'prevown', 'hostname', hostname)
+    prevownString2=mysqlSearch('prevown', 'hostname', hostname)
     for i in prevownString2:
         prevownString.append(i)
     conn.close()
@@ -343,17 +353,17 @@ def postDeviceReturnStatus(hostname):
     conn, cursor=mysqlConn()
     systemsString=[]
     systemsString.append(f'\nsystems record after return:')
-    systemsString2=mysqlRead(cursor, 'systems', 'hostname', hostname)
+    systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
         systemsString.append(i)
     currownString=[]
     currownString.append(f'\ncurrent owner record after return:')
-    currownString2=mysqlRead(cursor, 'currown', 'hostname', hostname)
+    currownString2=mysqlSearch('currown', 'hostname', hostname)
     for i in currownString2:
         currownString.append(i)
     prevownString=[]
     prevownString.append(f'\nprevious owner record after return:')
-    prevownString2=mysqlRead(cursor, 'prevown', 'hostname', hostname)
+    prevownString2=mysqlSearch('prevown', 'hostname', hostname)
     for i in prevownString2:
         prevownString.append(i)
     conn.close()
@@ -409,33 +419,22 @@ def deviceSwap(hostnameReturn, hostnameIssue, email, site, date):
     conn.close()
     return x
 
-def getDetailsLogs():
-    date, hostname, user, remarks=input('enter brand, model, serial, hostname, type, shipdate, warrexp, site, department seperated by comma:\n').split(',')
-    return date, hostname, user, remarks
-
-def addLogs(date, hostname, user, remarks):
-    conn, cursor=mysqlConn()
-    try:
-        cursor.execute(f'insert into logs(date, hostname, user, remarks) values("{date}", "{hostname}", "{user}", "{remarks}")')
-    except:
-        return False
-    conn.commit()
-    conn.close()
-    return True
-
 def choiceSelectTables():
-    hostnameIssue=''
-    hostnameReturn=''
-    email=''
-    department=''
-    site=''
-    date=''
-    user=''
-    remarks=''
+    # hostnameIssue=''
+    # hostnameReturn=''
+    # email=''
+    # department=''
+    # site=''
+    # date=''
+    # user=''
+    # remarks=''
+    # tableName=''
+    # columnName=''
+    # searchParam=''
     while True:
         table=input('''
 enter an option:
-
+f for searching the database
 as for adding a machine
 ds for deleting a machine 
 a for adding user
@@ -448,6 +447,16 @@ x to exit
 
 ''')
         match table:
+            case 'f':
+                tableName, columnName, searchParam=getDetailsSearch()
+                print()
+                x=mysqlSearch(tableName, columnName, searchParam)
+                if x:
+                    for i in x:
+                        print(i)
+                    print()
+                else:
+                    print(f'\'{searchParam}\' not found in column, \'{columnName}\' in table, \'{tableName}\'')
             case 'i':
                 hostnameIssue, email, date=getDetailsIssue()
                 if(deviceIssueChecks(hostnameIssue, email)):
