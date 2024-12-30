@@ -3,4 +3,4 @@
 .tables_in_csv
 .gitattributes
 .gitignore
-__pycache__/functions.cpython-313.pyc
+__pycache__

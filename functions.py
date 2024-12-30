@@ -1,9 +1,14 @@
 import mysql.connector
-import yaml
+import json
+
+def load_credentials(json_file):
+    with open(json_file, 'r') as file:
+        return json.load(file)
 
 def mysqlConn():
-    database=yaml.safe_load(open('db.yaml'))
-    conn=mysql.connector.connect(host=database['mysql_host'], user=database['mysql_user'], passwd=database['mysql_password'], db=database['mysql_db'])
+    credentials_file = 'db.json'
+    credentials = load_credentials(credentials_file)
+    conn=mysql.connector.connect(host=credentials['mysql_host'], user=credentials['mysql_user'], passwd=credentials['mysql_password'], db=credentials['mysql_db'])
     if conn.is_connected():
         myCursor=mysqlCursor(conn)
         if myCursor:

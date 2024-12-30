@@ -2,8 +2,6 @@ mysql -h 66.96.216.133 -u hussein -p
 juventude
 use bcinv
 
-
-
 mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv --tables prevown > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/latestTableBackup.sql
 
 mysqldump -h 66.96.216.133 -u hussein -p --databases bcinv > C:/ProgramData/MySQL/"MySQL Server 8.0"/backups/latestBcinvDbBackup.sql
@@ -28,7 +26,7 @@ scp hussein@66.96.216.133:/var/lib/mysql-files/haha.csv C:/Users/MLSI-HusseinAhm
 
 lenovo,t14 gen 5,Psdfsdf,SGSIN1BL1234,laptop,2024 Dec 10,2027 Dec 09,napier,premises
 apple,macbook pro 2025,mbp2025xfgdt,sgsin1bl7781,laptop,2024 may 12,2027 may 11,napier,regional
-
+brand, model, serial, hostname, type, shipdate, warrexp, site, department
 
 
 insert into users
