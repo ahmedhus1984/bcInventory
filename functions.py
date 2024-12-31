@@ -6,7 +6,7 @@ def load_credentials(json_file):
         return json.load(file)
 
 def mysqlConn():
-    credentials_file = 'db.json'
+    credentials_file = 'C:\\Users\\MLSI-HusseinAhmed\\source\\repos\\web_development\\bcInventory\\db.json'
     credentials = load_credentials(credentials_file)
     conn=mysql.connector.connect(host=credentials['mysql_host'], user=credentials['mysql_user'], passwd=credentials['mysql_password'], db=credentials['mysql_db'])
     if conn.is_connected():
@@ -209,11 +209,14 @@ def getDetailsIssue():
 
 def deviceIssueChecks(hostname, email):
     conn, cursor=mysqlConn()
+    blah=[False]
     cursor.execute(f'select department from systems where hostname=\'{hostname}\' and status=\'pending_deployment\'')
     result=cursor.rowcount
     if result==0:
         conn.close()
-        return False
+        blah[0]=False
+        blah.append(f'unable to issue \'{hostname}\'. either \'{hostname}\' not in database or has already been deployed')
+        return blah
     contents=cursor.fetchall()
     deviceDepartment=contents[0][0].strip().lower()
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
@@ -221,38 +224,46 @@ def deviceIssueChecks(hostname, email):
     result=cursor.rowcount
     if result!=0:
         contents=cursor.fetchall()
-        conn.close()
-        return False
+        blah[0]=False
+        blah.append(f'unable to issue \'{hostname}\'. \'{hostname}\' already been deployed')
+        for i in contents:
+            blah.append(i)
+        connClose(conn, cursor)
+        return blah
     #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
     cursor.execute(f'select * from users where user=\'{email}\'')
     result=cursor.rowcount
     if result==0:
-        conn.close()
+        blah[0]=False
+        blah.append(f'unable to issue \'{hostname}\'. user \'{email}\' not found in database')
+        connClose(conn, cursor)
         return False
     else:
         contents=cursor.fetchall()
         userDepartment=contents[0][1].strip().lower()
     if userDepartment==deviceDepartment:
-        conn.close()
-        return True
+        connClose(conn, cursor)
+        blah[0]=True
+        return blah
     else:
-        conn.close()
-        return False
+        connClose(conn, cursor)
+        blah[0]=False
+        blah.append(f'unable to issue \'{hostname}\'. dapartment for \'{email}\' and \'{hostname}\' are different')
+        return blah
 
 def preDeviceIssueStatus(hostname):
-    conn, cursor=mysqlConn()
-    systemsString=[]
-    systemsString.append(f'\nsystems record before issue:')
+    mainString=[]
+    mainString.append(f'\nsystems record before issue:')
     systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
-        systemsString.append(i)
+        mainString.append(i)
+    mainString.append(f'\ncurrent owner record before issue:')
     currownString=[]
-    currownString.append(f'\ncurrent owner record before issue:')
-    currownString2=mysqlSearch('currown', 'hostname', hostname)
-    for i in currownString2:
-        currownString.append(i)
-    conn.close()
-    return systemsString, currownString
+    currownString=mysqlSearch('currown', 'hostname', hostname)
+    if currownString:
+        for i in currownString:
+            mainString.append(i)
+    return mainString
 
 
 def deviceIssue(hostname, email, date):
@@ -263,23 +274,22 @@ def deviceIssue(hostname, email, date):
     except:
         return False
     conn.commit()
-    conn.close()
+    connClose(conn, cursor)
     return True
 
 def postDeviceIssueStatus(hostname):
-    conn, cursor=mysqlConn()
-    systemsString=[]
-    systemsString.append(f'\nsystems record after issue:')
+    mainString=[]
+    mainString.append(f'\nsystems record after issue:')
     systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
-        systemsString.append(i)
+        mainString.append(i)
+    mainString.append(f'\ncurrent owner record after issue:')
     currownString=[]
-    currownString.append(f'\ncurrent owner record after issue:')
-    currownString2=mysqlSearch('currown', 'hostname', hostname)
-    for i in currownString2:
-        currownString.append(i)
-    conn.close()
-    return systemsString, currownString
+    currownString=mysqlSearch('currown', 'hostname', hostname)
+    for i in currownString:
+        mainString.append(i)
+    return mainString
+
 
 
 
@@ -322,24 +332,23 @@ def deviceReturnChecks(hostname, email):
         return False
 
 def preDeviceReturnStatus(hostname):
-    conn, cursor=mysqlConn()
-    systemsString=[]
-    systemsString.append(f'\nsystems record before return:')
+    mainString=[]
+    mainString.append(f'\nsystems record before return:')
     systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
-        systemsString.append(i)
+        mainString.append(i)
+    mainString.append(f'\ncurrent owner record before return:')
     currownString=[]
-    currownString.append(f'\ncurrent owner record before return:')
-    currownString2=mysqlSearch('currown', 'hostname', hostname)
-    for i in currownString2:
-        currownString.append(i)
+    currownString=mysqlSearch('currown', 'hostname', hostname)
+    for i in currownString:
+        mainString.append(i)
+    mainString.append(f'\nprevious owner record before return:')
     prevownString=[]
-    prevownString.append(f'\nprevious owner record before return:')
-    prevownString2=mysqlSearch('prevown', 'hostname', hostname)
-    for i in prevownString2:
-        prevownString.append(i)
-    conn.close()
-    return systemsString, currownString, prevownString
+    prevownString=mysqlSearch('prevown', 'hostname', hostname)
+    if prevownString:
+        for i in prevownString:
+            mainString.append(i)
+    return mainString
 
 def deviceReturn(hostname, email, site, date):
     conn, cursor=mysqlConn()
@@ -355,26 +364,23 @@ def deviceReturn(hostname, email, site, date):
     return True
 
 def postDeviceReturnStatus(hostname):
-    conn, cursor=mysqlConn()
-    systemsString=[]
-    systemsString.append(f'\nsystems record after return:')
+    mainString=[]
+    mainString.append(f'\nsystems record after return:')
     systemsString2=mysqlSearch('systems', 'hostname', hostname)
     for i in systemsString2:
-        systemsString.append(i)
+        mainString.append(i)
+    mainString.append(f'\ncurrent owner record after return:')
     currownString=[]
-    currownString.append(f'\ncurrent owner record after return:')
-    currownString2=mysqlSearch('currown', 'hostname', hostname)
-    for i in currownString2:
-        currownString.append(i)
+    currownString=mysqlSearch('currown', 'hostname', hostname)
+    if currownString:
+        for i in currownString:
+            mainString.append(i)
+    mainString.append(f'\nprevious owner record after return:')
     prevownString=[]
-    prevownString.append(f'\nprevious owner record after return:')
-    prevownString2=mysqlSearch('prevown', 'hostname', hostname)
-    for i in prevownString2:
-        prevownString.append(i)
-    conn.close()
-    return systemsString, currownString, prevownString
-
-
+    prevownString=mysqlSearch('prevown', 'hostname', hostname)
+    for i in prevownString:
+        mainString.append(i)
+    return mainString
 
 def getDetailsSwap():
     hostnameReturn=input('\nenter hostname of device to returned by user: ').strip().lower()
