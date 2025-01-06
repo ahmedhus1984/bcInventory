@@ -164,18 +164,18 @@ def delSystem(cursor, hostname):
         return "Something went wrong: {}".format(err)
     return True
 
-def getDetailsIssue():
-    hostname=input('\nenter hostname of device to be issued to user: ').strip().lower()
-    email=input('\nenter email address of user: ').strip().lower()
-    date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
-    return hostname, email, date
-
-def searchIssue(cursor, hostname, status):
+def searchReturnIssue(cursor, hostname, status):
     blahMain=[]
     blahTemp=mysqlRead2Params(cursor, 'systems', 'hostname', hostname, 'status', status)
     for i in blahTemp:
         blahMain.append(i)
     return blahMain
+
+def getDetailsIssue():
+    hostname=input('\nenter hostname of device to be issued to user: ').strip().lower()
+    email=input('\nenter email address of user: ').strip().lower()
+    date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
+    return hostname, email, date
 
 def deviceIssue(cursor, hostname, email, date):
     try:
@@ -192,107 +192,14 @@ def getDetailsReturn():
     date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
     return hostname, email, site, date
 
-def deviceReturnChecks(hostname, email):
-    conn, cursor=mysqlConn()
-    cursor.execute(f'select department from systems where hostname=\'{hostname}\' and status=\'deployed\'')
-    result=cursor.rowcount
-    if result==0:
-        conn.close()
-        return False
-    contents=cursor.fetchall()
-    deviceDepartment=contents[0][0].strip().lower()
-    #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
-    cursor.execute(f'select * from currown where hostname=\'{hostname}\'')
-    result=cursor.rowcount
-    if result!=1:
-        conn.close()
-        return False
-    #double confirm hostname availability in case the status is reflected incorrectly as 'pending_deployment'in the systems table
-    cursor.execute(f'select * from users where user=\'{email}\'')
-    result=cursor.rowcount
-    if result==0:
-        conn.close()
-        return False
-    else:
-        contents=cursor.fetchall()
-        userDepartment=contents[0][1].strip().lower()
-    if userDepartment==deviceDepartment:
-        conn.close()
-        return True
-    else:
-        conn.close()
-        return False
-
-def preDeviceReturnStatus(cursor, hostname):
-    mainList=[]
-    subList1=[]
-    subList2=[]
-    subList3=[]
-    subList1.append(f'systems record before return:')
-    systemsString=mysqlSearch(cursor, 'systems', 'hostname', hostname)
-    for i in systemsString:
-        subList1.append(i)
-    mainList.append(subList1)
-    subList2.append(f'current owner record before return:')
-    currownString=mysqlSearch(cursor, 'currown', 'hostname', hostname)
-    if currownString:
-        for i in currownString:
-            subList2.append(i)
-    mainList.append(subList2)
-    subList3.append(f'previous owner record before return:')
-    prevownString=mysqlSearch(cursor, 'prevown', 'hostname', hostname)
-    if prevownString:
-        for i in prevownString:
-            subList3.append(i)
-    mainList.append(subList3)
-    return mainList
-
 def deviceReturn(cursor, hostname, email, site, date):
     try:
-        cursor.execute(f'insert into prevown select * from currown where hostname=\'{hostname}\' and user=\'{email}\'')
-        cursor.execute(f'update prevown set date=\'{date}\' where hostname=\'{hostname}\' and user=\'{email}\'')
-        cursor.execute(f'delete from currown where hostname=\'{hostname}\' and user=\'{email}\'')
+        cursor.execute(f'delete from currown where hostname=\'{hostname}\'')
         cursor.execute(f'update systems set site=\'{site}\', status=\'pending_deployment\' where hostname=\'{hostname}\'')
-    except:
-        return False
+        cursor.execute(f'insert into prevown values(\'{date}\', \'{hostname}\', \'{email}\')')
+    except mysql.connector.Error as err:
+        return "Something went wrong: {}".format(err)
     return True
-
-def postDeviceReturnStatus(cursor, hostname):
-    mainList=[]
-    subList1=[]
-    subList2=[]
-    subList3=[]
-    subList1.append(f'systems record after return:')
-    systemsString=mysqlSearch(cursor, 'systems', 'hostname', hostname)
-    for i in systemsString:
-        subList1.append(i)
-    mainList.append(subList1)
-    subList2.append(f'current owner record after return:')
-    currownString=mysqlSearch(cursor, 'currown', 'hostname', hostname)
-    if currownString:
-        for i in currownString:
-            subList2.append(i)
-    mainList.append(subList2)
-    subList3.append(f'previous owner record after return:')
-    prevownString=mysqlSearch(cursor, 'prevown', 'hostname', hostname)
-    if prevownString:
-        for i in prevownString:
-            subList3.append(i)
-    mainList.append(subList3)
-    return mainList
-
-def deviceReturnConsolidation(cursor, hostname, email, site, date):
-        blahFinal=[]
-        blahFinal.append(False)
-        blahFinal[0]=deviceReturnChecks(hostname, email)
-        if blahFinal[0]:
-            try:
-                blahFinal.append(preDeviceReturnStatus(cursor, hostname))
-                deviceReturn(cursor, hostname, email, site, date)
-                blahFinal.append(postDeviceReturnStatus(cursor, hostname))
-            except:
-                blahFinal[0]=False
-        return blahFinal
 
 def getDetailsSwap():
     hostnameReturn=input('\nenter hostname of device to returned by user: ').strip().lower()
