@@ -101,7 +101,7 @@ def getDetailsLogs():
 
 def searchLog(cursor, hostname):
     blahMain=[]
-    blahTemp=mysqlRead2Params(cursor, 'logs', 'hostname', hostname)
+    blahTemp=mysqlRead(cursor, 'logs', 'hostname', hostname)
     for i in blahTemp:
         blahMain.append(i)
     return blahMain
@@ -209,58 +209,32 @@ def getDetailsSwap():
     date=input('\nenter date in this format: \'yyyy mmm dd\': ').strip().lower()
     return hostnameReturn, hostnameIssue, email, site, date
 
-def swapDeviceIssue(cursor, hostname, email, date):
-    try:
-        cursor.execute(f'insert into currown values(\'{date}\', \'{hostname}\', \'{email}\')')
-        cursor.execute(f'update systems set site=null, status=\'deployed\' where hostname=\'{hostname}\'')
-    except:
-        return False
-    return True
-
-def swapDeviceReturn(cursor, hostname, email, site, date):
-    try:
-        cursor.execute(f'insert into prevown select * from currown where hostname=\'{hostname}\' and user=\'{email}\'')
-        cursor.execute(f'update prevown set date=\'{date}\' where hostname=\'{hostname}\' and user=\'{email}\'')
-        cursor.execute(f'delete from currown where hostname=\'{hostname}\' and user=\'{email}\'')
-        cursor.execute(f'update systems set site=\'{site}\', status=\'pending_deployment\' where hostname=\'{hostname}\'')
-    except:
-        return False
-    return True
-
-def deviceSwap(hostnameReturn, hostnameIssue, email, site, date):
-    conn, cursor=mysqlConn()
+def deviceSwap(cursor, hostnameReturn, hostnameIssue, email, site, date):
     x=False
-    returnList=[]
-    issueList=[]
-    returnIssueList=[]
-    if(deviceReturnChecks(hostnameReturn, email)):
-        if(deviceIssueChecks(hostnameIssue, email)):
-            returnList.append(preDeviceReturnStatus(hostnameReturn))
-            issueList.append(preDeviceIssueStatus(hostnameIssue))
-            if swapDeviceReturn(cursor, hostnameReturn, email, site, date):
-                returnList.append(postDeviceReturnStatus(hostnameReturn))
-                returnIssueList.append(returnList)
-                if swapDeviceIssue(cursor, hostnameIssue, email, date):
-                    issueList.append(postDeviceIssueStatus(hostnameIssue))
-                    returnIssueList.append(issueList)
-                    conn.commit()
-                    conn.close()
-                    x=returnIssueList
-    conn.close()
+    x=deviceReturn(cursor, hostnameReturn, email, site, date)
+    if x==True:
+        x=deviceIssue(cursor, hostnameIssue, email, date)
     return x
 
+def searchDecom(cursor, hostname):
+    blahMain=[]
+    blahTemp=mysqlRead2Params(cursor, 'systems', 'hostname', hostname, 'status', 'pending_deployment')
+    for i in blahTemp:
+        blahMain.append(i)
+    return blahMain
+
+def decom(cursor, hostname, reason):
+    try:
+        cursor.execute(f'insert into decom select * from systems where hostname=\'{hostname}\'')
+        cursor.execute(f'update decom set status=\'{reason}\'')
+        cursor.execute(f'delete from systems where hostname=\'{hostname}\'')
+        cursor.execute(f'delete from logs where hostname=\'{hostname}\'')
+    except mysql.connector.Error as err:
+        return "Something went wrong: {}".format(err)
+    return True
+
+
 def choiceSelectTables():
-    # hostnameIssue=''
-    # hostnameReturn=''
-    # email=''
-    # department=''
-    # site=''
-    # date=''
-    # user=''
-    # remarks=''
-    # tableName=''
-    # columnName=''
-    # searchParam=''
     while True:
         table=input('''
 enter an option:
