@@ -1,11 +1,9 @@
-import functions
+import mainLoop
 
-def main():
+if __name__=='__main__':
     a=''
     while True:
-        a=functions.choiceSelectTables()
+        a=mainLoop.choiceSelectTables()
         if a=='x':
             print('\nbye!')
-            return 0
-
-main()
+            exit(1)
